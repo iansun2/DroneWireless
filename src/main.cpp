@@ -4,14 +4,14 @@
 #include <Ticker.h>
 #include "main.hpp"
 #include "wifi_secret.h"
-#include "connection_controller.hpp"
+#include "wireless_controller.hpp"
 
 
 //AsyncClient* tcp_client = new AsyncClient;
 //WiFiClient tcp_client;
 WiFiUDP udp;
 Ticker wireless_connection_ticker;
-ConnectionController connection;
+WirelessController controller;
 
 String ip_addr;
 
@@ -104,7 +104,7 @@ void loop() {
             digitalWrite(15, digitalRead(15)?0:1);
         }
 
-        connection.connectionWatchdog();
+        controller.connectionWatchdog();
     }
 
     delay(1);
@@ -128,7 +128,7 @@ void droneSerialRxHandler(void* pvParameters) {
             buffer[fifo_data_len] = '\0';
             String rx_str = String(buffer);
             //Serial.printf("serial rx: [%s]\n", rx_str.c_str());
-            connection.serialRxPack(rx_str);
+            controller.rxProcess(rx_str, WirelessController::Drone);
 
             cnt ++;
             if(millis() - last_print_time >= 1000) {
@@ -149,10 +149,10 @@ void droneSerialRxHandler(void* pvParameters) {
 
 void droneSerialTxHandler(void* pvParameters) {
     while(1) {
-        String tx_data = connection.serialTxPack();
-        int tx_data_len = tx_data.length();
-        if(tx_data_len > 0) {
-            Serial1.write((uint8_t*)tx_data.c_str(), tx_data_len);
+        String tx_str = controller.getTxPack(WirelessController::Drone);
+        int tx_str_len = tx_str.length();
+        if(tx_str_len > 0) {
+            Serial1.write((uint8_t*)tx_str.c_str(), tx_str_len);
         }
         
         vTaskDelay(1 / portTICK_PERIOD_MS);
@@ -191,10 +191,10 @@ void wirelessHandler(void* pvParameters) {
                 udp.readBytes(rx_buf, pack_size);
                 rx_buf[pack_size] = '\0';
                 String rx_str = rx_buf;
-                connection.hostRxPack(rx_str);
+                controller.rxProcess(rx_str, WirelessController::Host);
 
                 // [transmit data]
-                String tx_buffer = connection.hostTxPack();
+                String tx_buffer = controller.getTxPack(WirelessController::Host);
                 if(tx_buffer != "") {
                     udp.beginPacket(udp.remoteIP(), udp.remotePort());
                     udp.write((uint8_t*)tx_buffer.c_str(), tx_buffer.length());

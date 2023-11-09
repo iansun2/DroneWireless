@@ -4,7 +4,33 @@
 #include "core_pack.hpp"
 
 
-class Ping : public StreamPack {
+
+class V4dStream : private StreamPack {
+public:
+    typedef struct{
+        float w, x, y, z;
+    }vector4_t;
+
+private:
+    String tag;
+
+    vector4_t value;
+
+public:
+    V4dStream(String tag, vector4_t init_value, uint32_t tx_interval);
+
+    void setData(vector4_t value);
+
+    void rxData(String pack[7], size_t count);
+
+    String getTxStr(uint32_t time);
+};
+
+
+
+
+
+class Ping : private StreamPack {
 public:
     Ping(uint32_t send_interval);
 
@@ -14,39 +40,8 @@ public:
 
 
 
-class CurrentAttitude : public StreamPack {
-public:
-    CurrentAttitude(uint32_t send_interval);
 
-    void setData(String* pack);
-
-    String getTxStr(uint32_t time);
-
-private:
-    uint32_t dt;
-    float attitude[4];
-};
-
-
-
-
-
-class TargetAttitude : public StreamPack {
-public:
-    TargetAttitude(uint32_t send_interval);
-
-    void setData(String* pack);
-
-    String getTxStr(uint32_t time);
-
-private:
-    int16_t attitude[3];
-};
-
-
-
-
-class DebugPack : public StreamPack {
+class DebugPack : private StreamPack {
 public:
     DebugPack(uint32_t send_interval);
 

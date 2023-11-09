@@ -25,80 +25,47 @@ String Ping::getTxStr(uint32_t time) {
 
 
 
-
 /*
-========[CurrentAttitude]=========
+========[V4dStream]=========
 */
 
-CurrentAttitude::CurrentAttitude(uint32_t send_interval):
-    StreamPack(send_interval),
-    dt(1000),
-    attitude{1,0,0,0}
+V4dStream::V4dStream(String tag, vector4_t init_value, uint32_t tx_interval):
+    tag(tag),
+    value(init_value),
+    StreamPack(tx_interval)
 {
 
 }
 
 
-void CurrentAttitude::setData(String* splited_pack) {
-    dt = splited_pack[2].toInt();
-    attitude[0] = splited_pack[3].toFloat();
-    attitude[1] = splited_pack[4].toFloat();
-    attitude[2] = splited_pack[5].toFloat();
-    attitude[3] = splited_pack[6].toFloat();
-    //Serial.printf("c_att: %d %d %d %d\n", (int)(attitude[0]*100000), (int)(attitude[1]*100000), (int)(attitude[2]*100000), (int)(attitude[3]*100000));
+void V4dStream::setData(vector4_t value) {
+    this->value = value;
+}
+
+
+void V4dStream::rxData(String pack[7], size_t count) {
+    if(count < 7) {
+        return;
+    }
+    value.w = pack[3].toFloat();
+    value.x = pack[4].toFloat();
+    value.y = pack[5].toFloat();
+    value.z = pack[6].toFloat();
     onRxFinish();
     //Serial.printf("CA Rx %d\n", dt);
 }
 
 
-String CurrentAttitude::getTxStr(uint32_t time) {
+String V4dStream::getTxStr(uint32_t time) {
     if(isNeedTx(time)) {
-        String send_str = "c_att,0,";
-        send_str += String(dt) + ",";
-        send_str += String(attitude[0], 5) + ",";
-        send_str += String(attitude[1], 5) + ",";
-        send_str += String(attitude[2], 5) + ",";
-        send_str += String(attitude[3], 5) + "\n";
+        String tx_str = "v4d_stream,0," + tag + ",";
+        tx_str += String(value.w, 5) + ",";
+        tx_str += String(value.x, 5) + ",";
+        tx_str += String(value.y, 5) + ",";
+        tx_str += String(value.z, 5) + "\n";
         onTxFinish(time);
         //Serial.printf("c_att: %s\n", send_str.c_str());
-        return send_str;
-    }else {
-        return "";
-    }
-}
-
-
-
-
-
-/*
-========[TargetAttitude]=========
-*/
-
-TargetAttitude::TargetAttitude(uint32_t send_interval):
-    StreamPack(send_interval),
-    attitude{0,0,0}
-{
-
-}
-
-
-void TargetAttitude::setData(String* splited_pack) {
-    attitude[0] = splited_pack[2].toInt();
-    attitude[1] = splited_pack[3].toInt();
-    attitude[2] = splited_pack[4].toInt();
-    onRxFinish();
-}
-
-
-String TargetAttitude::getTxStr(uint32_t time) {
-    if(isNeedTx(time)) {
-        String send_str = "t_att,0,";
-        send_str += String(attitude[0]) + ",";
-        send_str += String(attitude[1]) + ",";
-        send_str += String(attitude[2]) + "\n";
-        onTxFinish(time);
-        return send_str;
+        return tx_str;
     }else {
         return "";
     }
